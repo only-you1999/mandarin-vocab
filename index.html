@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习中文词汇网站</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<style>
+
+/* RESET */
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI, Tahoma, sans-serif;
+}
+
+/* BACKGROUND */
+body{
+background:
+linear-gradient(rgba(2,6,23,0.6),rgba(2,6,23,0.6)),
+url("jonny-gios-2vVhfhbj5-s-unsplash.jpg");
+background-size:cover;
+background-position:center;
+background-attachment:fixed;
+color:#e5e7eb;
+}
+
+/* CONTAINER */
+.container{
+max-width:1200px;
+margin:auto;
+padding:40px 20px;
+}
+
+/* HEADER */
+header{
+text-align:center;
+margin-bottom:40px;
+}
+
+h1{
+font-size:2.5rem;
+margin-bottom:10px;
+}
+
+.subtitle{
+color:#93c5fd;
+}
+
+/* STATUS */
+.status-box{
+margin-bottom:20px;
+padding:10px;
+border-radius:8px;
+background:rgba(34,197,94,0.15);
+color:#22c55e;
+text-align:center;
+}
+
+/* LAYOUT */
+.main-content{
+display:flex;
+gap:30px;
+align-items:flex-start;
+flex-wrap:wrap;
+}
+
+/* PANELS */
+.input-section,
+.vocab-list{
+flex:1;
+min-width:300px;
+background:rgba(2,6,23,0.6);
+backdrop-filter:blur(10px);
+border-radius:15px;
+padding:25px;
+border:1px solid rgba(255,255,255,0.1);
+box-shadow:0 0 40px rgba(59,130,246,0.25);
+max-height:600px;
+overflow-y:auto;
+}
+
+/* TITLES */
+h2{
+color:#60a5fa;
+margin-bottom:15px;
+border-bottom:1px solid rgba(255,255,255,0.2);
+padding-bottom:5px;
+}
+
+/* FORM */
+label{
+display:block;
+margin-top:15px;
+margin-bottom:5px;
+}
+
+input,textarea{
+width:100%;
+padding:10px;
+background:#020617;
+border:1px solid #1e293b;
+border-radius:8px;
+color:white;
+}
+
+textarea{resize:vertical}
+
+/* BUTTON */
+button{
+margin-top:15px;
+background:linear-gradient(90deg,#2563eb,#3b82f6);
+border:none;
+color:white;
+padding:12px;
+border-radius:8px;
+cursor:pointer;
+}
+
+button:hover{
+background:linear-gradient(90deg,#1e40af,#2563eb);
+}
+
+/* SEARCH */
+.search-box input{
+margin-bottom:15px;
+}
+
+/* VOCAB ITEM */
+.vocab-item{
+background:#020617;
+padding:15px;
+border-radius:10px;
+margin-bottom:15px;
+border-left:4px solid #3b82f6;
+}
+
+.vocab-item:hover{
+transform:translateY(-3px);
+box-shadow:0 0 20px rgba(59,130,246,0.4);
+}
+
+.vocab-chinese{
+font-size:1.6rem;
+color:#7dd3fc;
+}
+
+.vocab-pinyin{
+color:#cbd5f5;
+}
+
+.vocab-meaning{
+font-weight:bold;
+}
+
+.vocab-example{
+font-style:italic;
+opacity:0.9;
+}
+
+.delete-btn{
+background:#2563eb;
+border:none;
+padding:5px 10px;
+border-radius:6px;
+color:white;
+float:right;
+cursor:pointer;
+}
+
+.delete-btn:hover{
+background:#dc2626;
+}
+
+/* FOOTER */
+footer{
+text-align:center;
+margin-top:40px;
+opacity:0.7;
+}
+
+/* MOBILE */
+@media(max-width:768px){
+.main-content{
+flex-direction:column;
+}
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+<h1>周庆祥与温菲琳学习中文词汇网站</h1>
+<p class="subtitle">容易增加与学习中文词汇 - 🔥 Data Tersimpan di Firebase</p>
+</header>
+
+<div id="status" class="status-box">
+🔄 Menghubungkan ke Firebase...
+</div>
+
+<div class="main-content">
+
+<!-- INPUT -->
+<div class="input-section">
+<h2>增加新词汇</h2>
+
+<label>Kata</label>
+<input id="chinese">
+
+<label>Pinyin</label>
+<input id="pinyin">
+
+<label>Arti Indonesia</label>
+<input id="meaning">
+
+<label>Contoh</label>
+<textarea id="example"></textarea>
+
+<button id="submit-btn">Simpan Kosakata</button>
+</div>
+
+<!-- LIST -->
+<div class="vocab-list">
+<h2>Daftar Kosakata</h2>
+
+<div class="search-box">
+<input id="search" placeholder="Cari kosakata...">
+</div>
+
+<div id="vocab-container"></div>
+</div>
+
+</div>
+
+<footer>
+© 2025 Pembelajaran Kosakata Mandarin
+</footer>
+
+</div>
+
+<script>
+
+/* FIREBASE CONFIG */
+const firebaseConfig = {
+apiKey: "AIzaSyCeQBYt2evJIFkBir5XHd4x4Lldnkvo_Sk",
+authDomain: "kosakata-mandarin-chou-wen.firebaseapp.com",
+projectId: "kosakata-mandarin-chou-wen"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const vocabCollection = db.collection("vocabularies");
+
+/* STATUS */
+document.getElementById("status").innerText =
+"✅ Firebase terhubung! Siap menyimpan data.";
+
+/* SAVE */
+document.getElementById("submit-btn").onclick = async function(){
+
+const chinese = document.getElementById("chinese").value.trim();
+const pinyin = document.getElementById("pinyin").value.trim();
+const meaning = document.getElementById("meaning").value.trim();
+const example = document.getElementById("example").value.trim();
+
+if(!chinese || !pinyin || !meaning){
+alert("Harap isi kata, pinyin, dan arti!");
+return;
+}
+
+await vocabCollection.add({
+chinese,
+pinyin,
+meaning,
+example,
+createdAt: firebase.firestore.FieldValue.serverTimestamp()
+});
+
+document.getElementById("chinese").value="";
+document.getElementById("pinyin").value="";
+document.getElementById("meaning").value="";
+document.getElementById("example").value="";
+
+loadVocabularies();
+};
+
+/* LOAD */
+async function loadVocabularies(){
+const container=document.getElementById("vocab-container");
+container.innerHTML="";
+
+const snapshot = await vocabCollection
+.orderBy("createdAt","desc")
+.get();
+
+snapshot.forEach(doc=>{
+const d=doc.data();
+
+container.innerHTML+=`
+<div class="vocab-item">
+<button class="delete-btn" onclick="deleteVocab('${doc.id}')">Hapus</button>
+<div class="vocab-chinese">${d.chinese}</div>
+<div class="vocab-pinyin">${d.pinyin}</div>
+<div class="vocab-meaning">${d.meaning}</div>
+<div class="vocab-example">${d.example || ""}</div>
+</div>
+`;
+});
+}
+
+/* DELETE */
+async function deleteVocab(id){
+if(confirm("Hapus kosakata ini?")){
+await vocabCollection.doc(id).delete();
+loadVocabularies();
+}
+}
+
+/* SEARCH */
+document.getElementById("search").addEventListener("input",function(){
+const q=this.value.toLowerCase();
+document.querySelectorAll(".vocab-item").forEach(item=>{
+item.style.display = item.innerText.toLowerCase().includes(q)
+? "block" : "none";
+});
+});
+
+/* INIT */
+loadVocabularies();
+
+</script>
+
+</body>
+</html>
